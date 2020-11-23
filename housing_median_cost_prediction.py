@@ -279,7 +279,8 @@ display_scores(forest_reg, forest_rmse_scores)
 
 # Using GridSearchCV to test hyper parameters on the Random Forest Regressor
 param_grid = [
-    {'bootstrap': [False], 'n_estimators': [3, 10, 30, 90, 270, 810], 'max_features':[4, 10, 50, 100, 1000]}]
+    {'n_estimators': [3, 10, 30], 'max_features':[2,4,6,8]},
+    {'bootstrap': [False], 'n_estimators': [3, 10], 'max_features':[2,3,4]}]
 
 # Including Grid Search CV results from presented parameter grids
 forest_reg = RandomForestRegressor()
@@ -307,7 +308,7 @@ final_model = grid_search.best_estimator_
 X_test = strat_test_set.drop("median_house_value", axis=1)
 y_test = strat_test_set["median_house_value"].copy()
 X_test_prepared = full_pipeline.transform(X_test)
-final_predictions = final_model.predict(X_test)
+final_predictions = final_model.predict(X_test_prepared)
 final_mse = mean_squared_error(y_test, final_predictions)
 final_rmse = np.sqrt(final_mse)
 
