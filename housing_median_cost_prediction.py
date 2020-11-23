@@ -26,6 +26,7 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV
+from scipy import stats
 
 # This is the absolute path of the datasets
 HOUSING_PATH = "~/oreilly_ml/ml/handson-ml2/datasets/housing"
@@ -278,18 +279,44 @@ display_scores(forest_reg, forest_rmse_scores)
 
 # Using GridSearchCV to test hyper parameters on the Random Forest Regressor
 param_grid = [
-    {'n_estimators': [3,10,30], 'max_features': [2,4,6,8]},
-    {'bootstrap': [False], 'n_estimators': [3, 10], 'max_features':[2, 3, 4]}]
+    {'bootstrap': [False], 'n_estimators': [3, 10, 30, 90, 270, 810], 'max_features':[4, 10, 50, 100, 1000]}]
 
 # Including Grid Search CV results from presented parameter grids
 forest_reg = RandomForestRegressor()
 grid_search = GridSearchCV(forest_reg, param_grid, cv=5, scoring='neg_mean_squared_error', return_train_score=True, refit=True)
 grid_search.fit(housing_prepared, housing_labels)
+
+# Print out the best results and analyze the best model
 print("Best Hyperparameters: ", grid_search.best_params_)
 print("Best Estimator:", grid_search.best_estimator_)
 cvres = grid_search.cv_results_
 for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
-    print(np.sqrt(-mean_score), params)
+    print("Test Set:", np.sqrt(-mean_score), params)
+feature_importances = grid_search.best_estimator_.feature_importances_
+print("Grid Search Feature Importances:", feature_importances)
 
+# Display the feature importances next to their respective features
+extra_attribs = ["rooms_per_hhold", "pop_per_hhold", "bedrooms_per_room"]
+cat_encoder = full_pipeline.named_transformers_["cat"]
+cat_one_hot_attribs = list(cat_encoder.categories_[0])
+attributes = num_attribs + extra_attribs + cat_one_hot_attribs
+print(sorted(zip(feature_importances, attributes), reverse=True))
 
+# Run the final test set on the now trained model
+final_model = grid_search.best_estimator_
+X_test = strat_test_set.drop("median_house_value", axis=1)
+y_test = strat_test_set["median_house_value"].copy()
+X_test_prepared = full_pipeline.transform(X_test)
+final_predictions = final_model.predict(X_test)
+final_mse = mean_squared_error(y_test, final_predictions)
+final_rmse = np.sqrt(final_mse)
+
+# perform statistic on the final model
+confidence = 0.95
+squared_errors = (final_predictions - y_test)**2
+result = np.sqrt(stats.t.interval(confidence, 
+                         len(squared_errors)-1,
+                         loc=squared_errors.mean(),
+                         scale=stats.sem(squared_errors)))
+print("Result:", result)
 
