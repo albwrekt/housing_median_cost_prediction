@@ -9,11 +9,13 @@ Created on Mon Nov 23 21:26:42 2020
 import os
 import pandas as pd
 import numpy as np
+from pandas.plotting import scatter_matrix
+
 
 # this dataset will be used to predict the rating of the movie
 
 DATA_PATH = "../../archive/netflix_titles.csv"
-DATA_RELEVANCE_THRESHOLD = 0.5
+INDEX = "show_id"
 
 # method for reading in the data
 def load_data(datapath=DATA_PATH):
@@ -27,18 +29,23 @@ def split_test_train_set(testset, test_ratio):
     train_indices = shuffled_indices[test_set_size:]
     return testset.iloc[train_indices], testset.iloc[test_indices]
 
-def split_numbers_and_categories(dataset):
-    num_list = list()
-    cat_list = list()
+def split_numbers_and_categories(dataset, index=INDEX):
+    num_list = dataset.copy()
+    cat_list = dataset.copy()
     for key in dataset.keys():
         if dataset[key].dtype == 'object':
-            cat_list.append(key)
+            num_list.drop(key, axis=1, inplace=True)
         else:
-            num_list.append(key)
-    return num_list, cat_list
+            cat_list.drop(key, axis=1, inplace=True)
+    max_data_count = len(dataset[index])
+    return max_data_count, num_list, cat_list
 
-def process_numeric_datasets(num_set):
-    print("do some thing here")
+def process_numeric_dataset(num_set):
+    num_corr = num_set.corr()
+    for key in num_set.keys():
+        print(num_corr[key].sort_values(ascending=False))
+        print("\n\n")
+    scatter_matrix(num_set, figsize=(12, 8))
     
 def process_category_datasets(cat_set):
     print("category somethign here")
@@ -59,7 +66,9 @@ def investigate_dataset(data):
     
 dataset = load_data()
 train_set, test_set = split_test_train_set(dataset, 0.3)
-num_list, cat_list = split_numbers_and_categories(train_set)
+max_data_count, num_list, cat_list = split_numbers_and_categories(train_set)
+process_numeric_dataset(num_list)
+
 
 
 
